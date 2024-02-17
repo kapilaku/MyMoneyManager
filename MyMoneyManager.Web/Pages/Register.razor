@@ -1,0 +1,50 @@
+﻿@page "/register"
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+@inject ILocalStorageService localStorage
+
+@if (ShowAlert)
+{
+    <MudAlert Severity="Severity.Error">注册失败</MudAlert>
+}
+
+<MudContainer Width="50%">
+    <MudForm>
+        <MudTextField @bind-Value="Email" Label="邮箱"></MudTextField>
+        <MudTextField @bind-Value="Password" Label="密码" InputType="InputType.Password"></MudTextField>
+        <MudButton Variant="Variant.Filled" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" OnClick="RegisterAsync">注册</MudButton>
+    </MudForm>
+    <MudLink Typo="Typo.body1" Href="/login">已有账户？登录</MudLink>
+</MudContainer>
+
+
+@code {
+    private string Email { get; set; }
+    private string Password { get; set; }
+    private string ConfirmedPassword { get; set; }
+
+    private bool ShowAlert = false;
+
+    private async Task RegisterAsync()
+    {
+        var json = JsonConvert.SerializeObject(new { email = Email, password = Password, });
+        HttpResponseMessage response = new HttpResponseMessage();
+        try
+        {
+            response = await httpClient.PostAsync("https://localhost:7014/register",
+               new StringContent(json, Encoding.UTF8, "application/json"));
+            if (response.IsSuccessStatusCode)
+            {
+                navigationManager.NavigateTo("/login");
+            }
+            else
+            {
+                ShowAlert = true;
+            }
+        }
+        catch (Exception e)
+        {
+            ShowAlert = true;
+        }
+    }
+}

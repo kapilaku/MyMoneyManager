@@ -18,7 +18,7 @@ namespace MyMoneyManager.Shared.ViewModels
         public Decimal Balance { get; set; }
         public AccountType AccountType { get; set; }
 
-        public ICollection<AccountViewModel> Children { get; set; }
+        public HashSet<AccountViewModel> Children { get; set; }
     }
 
     public class TransactionViewModel

@@ -1,16 +1,40 @@
 ﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+<MudThemeProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
-        <article class="content px-4">
+<MudLayout>
+    <MudAppBar>
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="MudBlazor.Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5">个人财务管理系统</MudText>
+        @*  <MudIconButton Edge="Edge.End" Icon="@Icons.Material.Rounded.Girl">
+        <MudNavLink Href="/login" Match="NavLinkMatch.Prefix">登录/注册</MudNavLink>
+        </MudIconButton> *@
+    </MudAppBar>
+    <MudDrawer @bind-Open="@_drawerOpen">
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All">主页</MudNavLink>
+            <MudNavLink Href="/incomestatement" Match="NavLinkMatch.Prefix">损益表</MudNavLink>
+            <MudNavLink Href="/balancesheet" Match="NavLinkMatch.Prefix">资产负债表</MudNavLink>
+            <MudNavLink Href="/trialbalance" Match="NavLinkMatch.Prefix">试算表</MudNavLink>
+            <MudNavLink Href="/statistics" Match="NavLinkMatch.Prefix">统计</MudNavLink>
+            <MudNavLink Href="/about" Match="NavLinkMatch.Prefix">关于</MudNavLink>
+            <MudNavLink Href="/login" Match="NavLinkMatch.Prefix">登录</MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Medium">
             @Body
-        </article>
-    </main>
-</div>
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    bool _drawerOpen = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+}

@@ -9,10 +9,22 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        var MyBlazorApp = "MyBlazorApp";
+
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
 
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy(MyBlazorApp,
+                policy =>
+                {
+                    policy.WithOrigins("http://localhost:5273", "https://localhost:7203/")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
+                });
+        });
 
         // Add EF Core context
         builder.Services.AddDbContext<AppDbContext>(options =>
@@ -59,7 +71,9 @@ public class Program
             context.Database.EnsureCreated();
         }
 
+
         app.UseHttpsRedirection();
+        app.UseCors(MyBlazorApp);
 
         app.UseAuthorization();
 
@@ -67,7 +81,6 @@ public class Program
         app.MapIdentityApi<AppUser>();
 
         app.MapControllers();
-
         app.Run();
     }
 }

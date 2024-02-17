@@ -1,0 +1,53 @@
+﻿@page "/login"
+@inject HttpClient httpClient
+@inject NavigationManager navigationManager
+@inject ILocalStorageService localStorage
+
+@if (ShowAlert)
+{
+    <MudAlert Severity="Severity.Error">登陆失败</MudAlert>
+}
+
+<MudContainer Width="50%">
+    <MudForm>
+        <MudTextField @bind-Value="Email" Label="邮箱"></MudTextField>
+        <MudTextField @bind-Value="Password" Label="密码" InputType="InputType.Password"></MudTextField>
+        <MudButton Variant="Variant.Filled" Size="MudBlazor.Size.Large" Color="MudBlazor.Color.Primary" OnClick="LoginAsync">登录</MudButton>
+    </MudForm>
+    <MudLink Typo="Typo.body1" Href="/register">没有帐户？注册</MudLink>
+</MudContainer>
+
+
+@code {
+    private string Email { get; set; }
+    private string Password { get; set; }
+
+    private bool ShowAlert = false;
+
+    private async Task LoginAsync()
+    {
+        var json = JsonConvert.SerializeObject(new { email = Email, password = Password });
+        HttpResponseMessage response = new HttpResponseMessage();
+        try
+        {
+            response = await httpClient.PostAsync("https://localhost:7014/login",
+               new StringContent(json, Encoding.UTF8, "application/json"));
+            if (response.IsSuccessStatusCode)
+            {
+                string body = await response.Content.ReadAsStringAsync();
+                LoginViewModel loginViewModel = JsonConvert.DeserializeObject<LoginViewModel>(body);
+                await localStorage.SetItemAsStringAsync("accessToken", loginViewModel.AccessToken);
+                await localStorage.SetItemAsStringAsync("refreshToken", loginViewModel.RefreshToken);
+                navigationManager.NavigateTo("/");
+            }
+            else
+            {
+                ShowAlert = true;
+            }
+        }
+        catch (Exception e)
+        {
+            ShowAlert = true;
+        }
+    }
+}

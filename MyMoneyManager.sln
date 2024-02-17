@@ -7,11 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyMoneyManager.API", "MyMon
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyMoneyManager.Shared", "MyMoneyManager.Shared\MyMoneyManager.Shared.csproj", "{1AED5761-72E6-4F5D-822F-F1F5ACF28C35}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyMoneyManager.App", "MyMoneyManager.App\MyMoneyManager.App.csproj", "{2DED0116-1F46-487F-9588-1F77BBF034DE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyMoneyManager.App", "MyMoneyManager.App\MyMoneyManager.App.csproj", "{2DED0116-1F46-487F-9588-1F77BBF034DE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyMoneyManager.Web", "MyMoneyManager.Web\MyMoneyManager.Web.csproj", "{538B445F-DC0E-47A2-BBF0-38CD92741F06}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyMoneyManager.Web", "MyMoneyManager.Web\MyMoneyManager.Web.csproj", "{538B445F-DC0E-47A2-BBF0-38CD92741F06}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyMoneyManager.SharedUI", "MyMoneyManager.SharedUI\MyMoneyManager.SharedUI.csproj", "{6B714B1C-1C1A-4C5A-A51C-0697D2C4D19D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MyMoneyManager.SharedUI", "MyMoneyManager.SharedUI\MyMoneyManager.SharedUI.csproj", "{6B714B1C-1C1A-4C5A-A51C-0697D2C4D19D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

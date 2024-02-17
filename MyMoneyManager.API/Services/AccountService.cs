@@ -17,13 +17,13 @@ namespace MyMoneyManager.API.Services
             _currencyService = currencyService;
         }
 
-        private ICollection<AccountViewModel> GetChildrenAccountViewModels(Account account)
+        private HashSet<AccountViewModel> GetChildrenAccountViewModels(Account account)
         {
             if (account.ChildAccounts == null)
             {
                 return null;
             }
-            var result = new List<AccountViewModel>();
+            var result = new HashSet<AccountViewModel>();
             var accounts = _appDbContext.Account.Where(x => x.ParentAccountId == account.Id).Include(x => x.ChildAccounts);
             foreach (var childAccount in account.ChildAccounts)
             {
@@ -34,7 +34,7 @@ namespace MyMoneyManager.API.Services
                     Balance = childAccount.Balance,
                     CurrencyId = childAccount.CurrencyId,
                     Name = childAccount.Name,
-                    ParentAccountId = (int)childAccount.ParentAccountId,
+                    ParentAccountId = childAccount.ParentAccountId,
                 };
                 accountViewModel.Children = GetChildrenAccountViewModels(childAccount);
                 result.Add(accountViewModel);
