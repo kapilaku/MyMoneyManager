@@ -15,6 +15,25 @@ namespace MyMoneyManager.API.Services
             _userService = userService;
         }
 
+        public async Task<IEnumerable<SplitViewModel>> GetUserSplitsByAccountId(HttpContext httpContext, int accountId, CancellationToken cancellationToken)
+        {
+            var userid = _userService.GetUserId(httpContext);
+            var splits = await _appDbContext.Split.Where(t => t.AppUserId == userid && t.AccountId == accountId).ToListAsync();
+            var splitViewModelList = new List<SplitViewModel>();
+            foreach (var item in splits)
+            {
+                splitViewModelList.Add(new SplitViewModel
+                {
+                    Id = item.Id,
+                    AccountId = item.AccountId,
+                    Balance = item.Balance,
+                    CurrencyId = item.CurrencyId,
+                });
+            }
+            return splitViewModelList;
+        }
+
+
         public SplitViewModel GetUserSplit(HttpContext httpContext, int id, CancellationToken cancellationToken)
         {
             var userid = _userService.GetUserId(httpContext);

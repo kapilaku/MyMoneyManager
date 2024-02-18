@@ -1,0 +1,110 @@
+﻿@page "/currency"
+@inject HttpClient httpClient
+@inject ILocalStorageService localStorage
+@inject IDialogService _DialogService
+
+<h3>货币</h3>
+
+<MudDataGrid Items="currencyViewModels"
+             T="CurrencyViewModel"
+             ReadOnly="false"
+             EditMode="@DataGridEditMode.Form"
+             CommittedItemChanges="@Edit">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">货币</MudText>
+        <MudButton Variant="Variant.Filled"
+                   EndIcon="@Icons.Material.Filled.Add"
+                   Color="Color.Success" Size="Size.Small"
+                   Style="margin-left:1em;" OnClick="AddItem">Add New</MudButton>
+        <MudSpacer />
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Id" Title="Id" />
+        <PropertyColumn Property="x => x.CurrencyName" Title="货币" />
+        <PropertyColumn Property="x => x.CurrencyCode" Title="货币代码" />
+        <TemplateColumn Hidden="false">
+            <CellTemplate>
+                <MudIconButton Size="@MudBlazor.Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@context.Actions.StartEditingItemAsync" />
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn Hidden="false">
+            <CellTemplate>
+                <MudIconButton Size="@MudBlazor.Size.Small" Icon="@Icons.Material.Filled.Delete" OnClick="@(async () =>  await RemoveItem(@context.Item))" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+</MudDataGrid>
+
+@code {
+    private ICollection<CurrencyViewModel> currencyViewModels;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await localStorage.GetItemAsStringAsync("accessToken");
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+
+        var response = await httpClient.GetAsync("https://localhost:7014/api/currency");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            currencyViewModels = JsonConvert.DeserializeObject<ICollection<CurrencyViewModel>>(content);
+        }
+    }
+
+    private async Task Edit(CurrencyViewModel item)
+    {
+        var token = await localStorage.GetItemAsStringAsync("accessToken");
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var json = JsonConvert.SerializeObject(item);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await httpClient.PutAsync($"https://localhost:7014/api/currency/{item.Id}", content);
+    }
+
+    private async Task RemoveItem(CurrencyViewModel item)
+    {
+        var token = await localStorage.GetItemAsStringAsync("accessToken");
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        currencyViewModels.Remove(item);
+
+        var response = await httpClient.DeleteAsync($"https://localhost:7014/api/currency/{item.Id}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            StateHasChanged();
+        }
+        else
+        {
+            Console.WriteLine("请求失败，状态码：" + response.StatusCode);
+        }
+    }
+
+    private async Task AddItem()
+    {
+        var newItem = new CurrencyViewModel();
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, Position = DialogPosition.TopCenter };
+        var dialog = await _DialogService.ShowAsync<Components.CurrencyForm>("添加新的货币", parameters: new DialogParameters { ["Item"] = newItem }, options: options);
+
+        var result = await dialog.Result;
+
+        if (result.Data is CurrencyViewModel item)
+        {
+            currencyViewModels.Add(item);
+
+            var response = await httpClient.PostAsJsonAsync("https://localhost:7014/api/currency", item);
+
+            if (response.IsSuccessStatusCode)
+            {
+                StateHasChanged();
+            }
+            else
+            {
+                Console.WriteLine("请求失败，状态码：" + response.StatusCode);
+            }
+        }
+    }
+}

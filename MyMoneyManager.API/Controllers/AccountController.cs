@@ -12,9 +12,11 @@ public class AccountController : ControllerBase
 {
 
     private readonly IAccountService _accountService;
-    public AccountController(IAccountService accountService)
+    private readonly ISplitService _splitService;
+    public AccountController(IAccountService accountService, ISplitService splitService)
     {
         _accountService = accountService;
+        _splitService = splitService;
     }
 
     // GET: api/<AccountController>
@@ -29,6 +31,12 @@ public class AccountController : ControllerBase
     public AccountViewModel Get(int id, CancellationToken cancellationToken)
     {
         return _accountService.GetUserAccount(HttpContext, id, cancellationToken);
+    }
+
+    [HttpGet("{accountId}/splits")]
+    public async Task<IEnumerable<SplitViewModel>> GetSplits([FromRoute] int accountId, CancellationToken cancellationToken)
+    {
+        return await _splitService.GetUserSplitsByAccountId(HttpContext, accountId, cancellationToken);
     }
 
     // POST api/<AccountController>

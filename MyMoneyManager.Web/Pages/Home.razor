@@ -1,14 +1,136 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components.Authorization
+@inject IDialogService _DialogService
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+@inject HttpClient httpClient
+@inject ILocalStorageService localStorage
+@inject NavigationManager NavManager
 
-Welcome to your new app.
+<MudPaper  Elevation="0">
+    <MudTreeView Items="Accounts" @bind-ActivatedValue="ActivatedAccount" @bind-SelectedValues="SelectedAccounts">
+
+        <ItemTemplate Context="item">
+            <MudTreeViewItem Items="@item.Children" Value="@item"
+                             Icon="@item.AccountType.ToString()" Text="@item.Name"
+                             EndText="@item.Balance.ToString()" EndTextTypo="@Typo.caption"
+                             OnDoubleClick="Changed">
+                <BodyContent>
+                    <div style="display: grid; grid-template-columns: 1fr auto; align-items: center; width: 100%">
+                        <MudText Style="justify-self: start;">@item.Name</MudText>
+                        <div style="justify-self: end;">
+                            <MudStack Row="true" >
+                                <MudText style="align=center;">@GetSelectedSum(item)</MudText>
+
+                                <MudIconButton Icon="@Icons.Material.Filled.NewLabel" Size="Size.Medium" Color="Color.Inherit"
+                                               OnClick="@(async () =>  await NewAccount(@item))" />
+                            </MudStack>
+
+@* 
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Medium" Color="Color.Inherit" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Medium" Color="Color.Inherit" /> *@
+                        </div>
+                    </div>
+                </BodyContent>
+
+            </MudTreeViewItem>
+
+        </ItemTemplate>
+    </MudTreeView>
+</MudPaper>
+
+<div style="width: 100%">
+    <MudText Typo="@Typo.subtitle1">Activated account: @(ActivatedAccount?.Name)</MudText>
+@*     <MudText Typo="@Typo.subtitle1">Sum of selected balances: @GetSelectedSum()</MudText>
+ *@</div>
+@code {
+    private AccountViewModel ActivatedAccount { get; set; }
+
+    private HashSet<AccountViewModel> SelectedAccounts { get; set; }
+
+    private HashSet<AccountViewModel> Accounts { get; set; } = new HashSet<AccountViewModel>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await localStorage.GetItemAsStringAsync("accessToken");
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+
+        var response = await httpClient.GetAsync("https://localhost:7014/api/account");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            Accounts = JsonConvert.DeserializeObject<HashSet<AccountViewModel>>(content);
+        }
+    }
+
+    private async Task NewAccount(AccountViewModel parentAccount)
+    {
+        var token = await localStorage.GetItemAsStringAsync("accessToken");
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await httpClient.GetAsync("https://localhost:7014/api/currency");
+        ICollection<CurrencyViewModel> currencies = null;
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            currencies = JsonConvert.DeserializeObject<ICollection<CurrencyViewModel>>(content);
+        }
+
+        var newItem = new AccountViewModel();
+
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Large, Position = DialogPosition.TopCenter };
+        var dialog = await _DialogService.ShowAsync<Components.AccountForm>("添加新的账户", parameters: new DialogParameters { ["Item"] = newItem, ["Currencies"] = currencies }, options: options);
+
+        var result = await dialog.Result;
+
+        if (result.Data is AccountViewModel item)
+        {
+            item.ParentAccountId = parentAccount.Id;
+            item.AccountType = parentAccount.AccountType;
+            item.Children = new HashSet<AccountViewModel>();
+
+            parentAccount.Children.Add(item);
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var json = JsonConvert.SerializeObject(item);
+            var stringContent = new StringContent(json, Encoding.UTF8, "application/json");
+            response = await httpClient.PostAsync("https://localhost:7014/api/account", stringContent);
 
 
 
-@code
-{
+            if (response.IsSuccessStatusCode)
+            {
+                StateHasChanged();
+            }
+            else
+            {
+                Console.WriteLine("请求失败，状态码：" + response.StatusCode);
+            }
+        }
+    }
 
+    private void Changed(MouseEventArgs value)
+    {
+        NavManager.NavigateTo($"/account/{ActivatedAccount.Id}");
+    }
+
+    public decimal GetSelectedSum(AccountViewModel account)
+    {
+        if (account.Children == null)
+        {
+            return 0;
+        }
+        else
+        {
+            var balance = account.Balance;
+            foreach (var item in account.Children)
+            {
+                balance += GetSelectedSum(item);
+            }
+            return balance;
+        }
+    }
 }
