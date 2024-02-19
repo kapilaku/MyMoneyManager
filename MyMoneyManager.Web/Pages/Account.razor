@@ -9,7 +9,7 @@
 
 <PageTitle>@PageTitle</PageTitle>
 
-<CartesianChart Series="series">
+<CartesianChart Series="series" TooltipTextPaint="TooltipTextPaint">
 </CartesianChart>
 
 @code {
@@ -19,22 +19,14 @@
     private IEnumerable<SplitViewModel> splitViewModels;
     private string PageTitle = "账户";
 
-    private ISeries[] series = new ISeries[]
-{
-    new LineSeries<int>
-    {
-    Values = new []{ 2, 5, 4, 2, 6 },
-    Name = "Income",
-    Stroke = null
-    },
-    new LineSeries<int>
-    {
-        Values = new[] { 3, 7, 2, 9, 4 },
-        Name = "Outcome",
-        Stroke = null
-    }
-};
+    private ISeries[] series = new ISeries[]{};
+    // private List<Axis> xaxes = new List<Axis>();
 
+    public SolidColorPaint TooltipTextPaint { get; set; } = new SolidColorPaint
+        {
+            Color = new SKColor(255, 255, 255),
+            SKTypeface = SKFontManager.Default.MatchCharacter('汉'),
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -51,16 +43,33 @@
             PageTitle = accountViewModel.Name;
         }
 
+
+
         response = await httpClient.GetAsync($"https://localhost:7014/api/account/{AccountId}/splits");
 
 
-        if (response.IsSuccessStatusCode)
+        if (response.IsSuccessStatusCode) 
         {
             var content = await response.Content.ReadAsStringAsync();
             splitViewModels = JsonConvert.DeserializeObject<IEnumerable<SplitViewModel>>(content);
-            
+
+            LineSeries<Decimal> lineSeries = new LineSeries<Decimal>();
+            var values = new List<Decimal>();
+            Axis axis = new Axis();
+            Decimal balance = 0;
+            values.Add(balance);
+            foreach (var item in splitViewModels)
+            {
+                balance += item.Balance;
+                values.Add(balance);
+            }
+            lineSeries.Values = values;
+            // lineSeries.Name = accountViewModel.Name;
+
+            series = new ISeries[]
+            {
+                lineSeries,
+            };
         }
     }
-
-
 }

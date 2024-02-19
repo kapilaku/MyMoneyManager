@@ -7,7 +7,7 @@
 @inject ILocalStorageService localStorage
 @inject NavigationManager NavManager
 
-<MudPaper  Elevation="0">
+<MudPaper Elevation="0">
     <MudTreeView Items="Accounts" @bind-ActivatedValue="ActivatedAccount" @bind-SelectedValues="SelectedAccounts">
 
         <ItemTemplate Context="item">
@@ -19,14 +19,14 @@
                     <div style="display: grid; grid-template-columns: 1fr auto; align-items: center; width: 100%">
                         <MudText Style="justify-self: start;">@item.Name</MudText>
                         <div style="justify-self: end;">
-                            <MudStack Row="true" >
+                            <MudStack Row="true">
                                 <MudText style="align=center;">@GetSelectedSum(item)</MudText>
 
-                                <MudIconButton Icon="@Icons.Material.Filled.NewLabel" Size="Size.Medium" Color="Color.Inherit"
+                                <MudIconButton Icon="@Icons.Material.Filled.NewLabel" Size="MudBlazor.Size.Medium" Color="MudBlazor.Color.Inherit"
                                                OnClick="@(async () =>  await NewAccount(@item))" />
                             </MudStack>
 
-@* 
+                            @*
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Medium" Color="Color.Inherit" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Medium" Color="Color.Inherit" /> *@
                         </div>
@@ -41,8 +41,9 @@
 
 <div style="width: 100%">
     <MudText Typo="@Typo.subtitle1">Activated account: @(ActivatedAccount?.Name)</MudText>
-@*     <MudText Typo="@Typo.subtitle1">Sum of selected balances: @GetSelectedSum()</MudText>
- *@</div>
+    @*     <MudText Typo="@Typo.subtitle1">Sum of selected balances: @GetSelectedSum()</MudText>
+    *@
+</div>
 @code {
     private AccountViewModel ActivatedAccount { get; set; }
 
@@ -119,18 +120,14 @@
 
     public decimal GetSelectedSum(AccountViewModel account)
     {
-        if (account.Children == null)
+        var balance = account.Balance;
+        if (account.Children != null)
         {
-            return 0;
-        }
-        else
-        {
-            var balance = account.Balance;
             foreach (var item in account.Children)
             {
                 balance += GetSelectedSum(item);
             }
-            return balance;
         }
+        return balance;
     }
 }

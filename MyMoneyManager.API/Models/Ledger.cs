@@ -43,8 +43,8 @@ public class Transaction
     public int Id { get; set; }
     public string AppUserId { get; set; }
     public int TagId { get; set; }
-
-    public DateTime Occured { get; set; }
+    
+    public DateTime Occured { get; set; } = DateTime.UtcNow;
     public string Description { get; set; }
 
     public Tag? Tag { get; set; }

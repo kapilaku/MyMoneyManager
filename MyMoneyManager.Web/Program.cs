@@ -20,7 +20,7 @@ namespace MyMoneyManager.Web
             builder.Services.AddMudServices();
             builder.Services.AddBlazoredLocalStorage();
             builder.Services.AddAuthorizationCore();
-            builder.Services.TryAddScoped<AuthenticationStateProvider, MyAuthenticationStateProvider>();
+            builder.Services.TryAddScoped<AuthenticationStateProvider, MyAuthenticationStateProvider>(); 
 
             await builder.Build().RunAsync();
         }

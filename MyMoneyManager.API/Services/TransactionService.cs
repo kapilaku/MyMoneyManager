@@ -47,7 +47,7 @@ namespace MyMoneyManager.API.Services
             return transactionViewModelList;
         }
 
-        public async Task CreateUserTransaction(HttpContext httpContext, TransactionViewModel transactionViewModel, CancellationToken cancellationToken)
+        public async Task<int> CreateUserTransaction(HttpContext httpContext, TransactionViewModel transactionViewModel, CancellationToken cancellationToken)
         {
             var userid = _userService.GetUserId(httpContext);
             var transaction = new Transaction()
@@ -58,8 +58,10 @@ namespace MyMoneyManager.API.Services
                 Occured = transactionViewModel.Occured,
                 TagId = transactionViewModel.TagId,
             };
-            await _appDbContext.Transaction.AddAsync(transaction);
+            _appDbContext.Transaction.Add(transaction);
             await _appDbContext.SaveChangesAsync();
+
+            return transaction.Id;
         }
 
         public async Task UpdateUserTransaction(HttpContext httpContext, TransactionViewModel transactionViewModel, CancellationToken cancellationToken)
@@ -67,7 +69,7 @@ namespace MyMoneyManager.API.Services
             var userid = _userService.GetUserId(httpContext);
             var tmp = _appDbContext.Transaction.Where(t => t.AppUserId == userid && t.Id == transactionViewModel.Id).First();
             tmp.Description = transactionViewModel.Description;
-            tmp.Occured  = transactionViewModel.Occured;
+            tmp.Occured = transactionViewModel.Occured;
             tmp.TagId = transactionViewModel.TagId;
             _appDbContext.Transaction.Update(tmp);
             await _appDbContext.SaveChangesAsync();

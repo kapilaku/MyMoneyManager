@@ -31,9 +31,9 @@ namespace MyMoneyManager.API.Controllers
 
         // POST api/<TransactionController>
         [HttpPost]
-        public async Task Post([FromBody] TransactionViewModel transactionViewModel, CancellationToken cancellationToken)
+        public async Task<int> Post([FromBody] TransactionViewModel transactionViewModel, CancellationToken cancellationToken)
         {
-            await _transactionService.CreateUserTransaction(HttpContext, transactionViewModel, cancellationToken);
+            return await _transactionService.CreateUserTransaction(HttpContext, transactionViewModel, cancellationToken);
         }
 
         // PUT api/<TransactionController>/5

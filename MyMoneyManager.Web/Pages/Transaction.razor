@@ -1,0 +1,167 @@
+﻿@page "/transaction"
+@inject HttpClient httpClient
+@inject ILocalStorageService localStorage
+
+<MudDatePicker Label="交易时间" @bind-Date="date" />
+<MudTextField @bind-Value="Description" Variant="Variant.Text" Margin="Margin.Dense" Label="摘要" />
+<MudSelect Label="标签" @bind-Value="TagId">
+    @foreach (var tag in TagViewModels)
+    {
+        <MudSelectItem Value="@tag.Id">@tag.TagName</MudSelectItem>
+    }
+</MudSelect>
+@foreach (var split in splits)
+{
+    <MudDivider DividerType="DividerType.Middle" Class="my-6" />
+    <MudCard>
+        <MudSelect Label="账户" @bind-Value="split.AccountId">
+            @foreach (var account in Accounts)
+            {
+                <MudSelectItem Value="@account.Id">@account.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSelect Label="货币" @bind-Value="split.CurrencyId">
+            @foreach (var currency in currencies)
+            {
+                <MudSelectItem Value="@currency.Id">@currency.CurrencyName</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField T="Decimal" @bind-Value="split.Balance" Label="金额" />
+    </MudCard>
+
+}
+
+<MudButton Color="MudBlazor.Color.Primary" Variant="Variant.Filled" OnClick="AddSplit">添加拆分项</MudButton>
+<MudButton Color="MudBlazor.Color.Success" Variant="Variant.Filled" OnClick="AddTransaction">确认交易</MudButton>
+
+
+@code {
+    private ICollection<SplitViewModel> splits = new List<SplitViewModel>();
+    private ICollection<TagViewModel> TagViewModels = new List<TagViewModel>();
+    private ICollection<CurrencyViewModel> currencies = new List<CurrencyViewModel>();
+
+
+    DateTime? date = DateTime.UtcNow;
+    string Description;
+    int TagId;
+
+    private ICollection<AccountViewModel> Accounts { get; set; } = new List<AccountViewModel>();
+    private TransactionViewModel transaction = new TransactionViewModel();
+    protected override async Task OnInitializedAsync()
+    {
+        splits.Add(new SplitViewModel());
+        splits.Add(new SplitViewModel());
+
+        var token = await localStorage.GetItemAsStringAsync("accessToken");
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+
+        var response = await httpClient.GetAsync("https://localhost:7014/api/account");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            HashSet<AccountViewModel> tmpAccounts = JsonConvert.DeserializeObject<HashSet<AccountViewModel>>(content);
+
+            foreach (var item in tmpAccounts)
+            {
+                AddToAccounts(item);
+            }
+        }
+
+        response = await httpClient.GetAsync("https://localhost:7014/api/tag");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            TagViewModels = JsonConvert.DeserializeObject<ICollection<TagViewModel>>(content);
+        }
+
+        response = await httpClient.GetAsync("https://localhost:7014/api/currency");
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            currencies = JsonConvert.DeserializeObject<ICollection<CurrencyViewModel>>(content);
+
+        }
+    }
+
+    private void AddSplit()
+    {
+        splits.Add(new SplitViewModel());
+        StateHasChanged();
+    }
+
+    private async void AddTransaction()
+    {
+        Decimal sum = 0;
+        foreach (var item in splits)
+        {
+            sum += item.Balance;
+        }
+        if (sum == 0)
+        {
+            var token = await localStorage.GetItemAsStringAsync("accessToken");
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            transaction.Occured = date.Value;
+            transaction.Description = Description;
+            transaction.TagId = TagId;
+
+            var response = await httpClient.PostAsJsonAsync("https://localhost:7014/api/transaction", transaction);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                int transactionId = JsonConvert.DeserializeObject<int>(content);
+
+                foreach (var item in splits)
+                {
+                    item.TransactionId = transactionId;
+
+                    response = await httpClient.PostAsJsonAsync("https://localhost:7014/api/split", item);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        response = await httpClient.GetAsync($"https://localhost:7014/api/account/{item.AccountId}");
+
+                        if (response.IsSuccessStatusCode)
+                        {
+                            content = await response.Content.ReadAsStringAsync();
+                            var accountViewModel = JsonConvert.DeserializeObject<AccountViewModel>(content);
+                            accountViewModel.Balance += item.Balance;
+                            response = await httpClient.PutAsJsonAsync($"https://localhost:7014/api/account/{item.AccountId}",
+                                accountViewModel);
+
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
+    private void AddToAccounts(AccountViewModel account)
+    {
+        if (account is null)
+        {
+            return;
+        }
+
+        if (account.ParentAccountId is not null)
+        {
+            Accounts.Add(account);
+        }
+
+        if (account.Children != null)
+        {
+            foreach (var item in account.Children)
+            {
+                AddToAccounts(item);
+            }
+        }
+
+
+    }
+
+}
