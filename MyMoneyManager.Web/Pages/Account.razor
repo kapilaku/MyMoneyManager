@@ -9,7 +9,7 @@
 
 <PageTitle>@PageTitle</PageTitle>
 
-<CartesianChart Series="series" TooltipTextPaint="TooltipTextPaint">
+<CartesianChart Series="series" TooltipTextPaint="TooltipTextPaint" XAxes="xaxes">
 </CartesianChart>
 
 @code {
@@ -17,10 +17,11 @@
     public int AccountId { get; set; }
     private AccountViewModel accountViewModel;
     private IEnumerable<SplitViewModel> splitViewModels;
+    private ICollection<FinancialStatusViewModel> financialStatusViewModels = new List<FinancialStatusViewModel>();
     private string PageTitle = "账户";
 
     private ISeries[] series = new ISeries[]{};
-    // private List<Axis> xaxes = new List<Axis>();
+    private List<Axis> xaxes = new List<Axis>();
 
     public SolidColorPaint TooltipTextPaint { get; set; } = new SolidColorPaint
         {
@@ -44,32 +45,57 @@
         }
 
 
+        response = await httpClient.GetAsync($"https://localhost:7014/api/financial/daily/{AccountId}");
 
-        response = await httpClient.GetAsync($"https://localhost:7014/api/account/{AccountId}/splits");
-
-
-        if (response.IsSuccessStatusCode) 
+        if (response.IsSuccessStatusCode)
         {
             var content = await response.Content.ReadAsStringAsync();
-            splitViewModels = JsonConvert.DeserializeObject<IEnumerable<SplitViewModel>>(content);
+            financialStatusViewModels = JsonConvert.DeserializeObject<ICollection<FinancialStatusViewModel>>(content);
 
             LineSeries<Decimal> lineSeries = new LineSeries<Decimal>();
             var values = new List<Decimal>();
+            var labels = new List<string>();
             Axis axis = new Axis();
+            axis.Labels = new List<string>();
             Decimal balance = 0;
-            values.Add(balance);
-            foreach (var item in splitViewModels)
+            foreach (var item in financialStatusViewModels)
             {
-                balance += item.Balance;
-                values.Add(balance);
+                values.Add(item.CurrentBalance);
+                axis.Labels.Add(item.TimePeriod.ToShortDateString());
             }
             lineSeries.Values = values;
             // lineSeries.Name = accountViewModel.Name;
-
+            xaxes.Add(axis);
             series = new ISeries[]
             {
                 lineSeries,
             };
+            
         }
+        // response = await httpClient.GetAsync($"https://localhost:7014/api/account/{AccountId}/splits");
+
+        // if (response.IsSuccessStatusCode) 
+        // {
+        //     var content = await response.Content.ReadAsStringAsync();
+        //     splitViewModels = JsonConvert.DeserializeObject<IEnumerable<SplitViewModel>>(content);
+
+        //     LineSeries<Decimal> lineSeries = new LineSeries<Decimal>();
+        //     var values = new List<Decimal>();
+        //     Axis axis = new Axis();
+        //     Decimal balance = 0;
+        //     values.Add(balance);
+        //     foreach (var item in splitViewModels)
+        //     {
+        //         balance += item.Balance;
+        //         values.Add(balance);
+        //     }
+        //     lineSeries.Values = values;
+        //     // lineSeries.Name = accountViewModel.Name;
+
+        //     series = new ISeries[]
+        //     {
+        //         lineSeries,
+        //     };
+        // }
     }
 }

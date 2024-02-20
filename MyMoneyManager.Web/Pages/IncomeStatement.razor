@@ -1,7 +1,97 @@
 ﻿@page "/incomestatement"
-
+@inject HttpClient httpClient
+@inject ILocalStorageService localStorage
+@using LiveChartsCore
+@using LiveChartsCore.SkiaSharpView
+@using LiveChartsCore.SkiaSharpView.Blazor
+@using LiveChartsCore.SkiaSharpView.Painting
+@using SkiaSharp
 <h3>IncomeStatement</h3>
+
+<CartesianChart Series="series" XAxes="xaxes">
+</CartesianChart>
 
 @code {
 
+    private ICollection<ISeries> series = new List<ISeries>();
+    private List<Axis> xaxes = new List<Axis>();
+
+    private HashSet<AccountViewModel> Accounts { get; set; } = new HashSet<AccountViewModel>();
+    private ICollection<AccountViewModel> IncomeAccounts { get; set; } = new List<AccountViewModel>();
+    // private ICollection<AccountViewModel> ExpenseAccounts { get; set; } = new List<AccountViewModel>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await localStorage.GetItemAsStringAsync("accessToken");
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await httpClient.GetAsync("https://localhost:7014/api/account");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            Accounts = JsonConvert.DeserializeObject<HashSet<AccountViewModel>>(content);
+
+            AddToAccounts(Accounts.Where(a => a.AccountType == Shared.AccountType.INCOME).First(), IncomeAccounts);
+            AddToAccounts(Accounts.Where(a => a.AccountType == Shared.AccountType.EXPENSE).First(), IncomeAccounts);
+        }
+
+        Axis axis = new Axis();
+        axis.Labels = new List<string>();
+        ICollection<FinancialStatusViewModel> tmp = new List<FinancialStatusViewModel>();
+
+        foreach (var item in IncomeAccounts)
+        {
+            response = await httpClient.GetAsync($"https://localhost:7014/api/financial/dailyzeros/{item.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                var financialStatusViewModels = JsonConvert.DeserializeObject<ICollection<FinancialStatusViewModel>>(content);
+                tmp = financialStatusViewModels;
+                StackedColumnSeries<Decimal> lineSeries = new StackedColumnSeries<Decimal>();
+                var values = new List<Decimal>();
+                var labels = new List<string>();
+                Decimal balance = 0;
+                foreach (var fsvm in financialStatusViewModels)
+                {
+                    values.Add(fsvm.CurrentBalance);
+                    // axis.Labels.Add(fsvm.TimePeriod.ToShortDateString());
+                }
+                lineSeries.Values = values;
+                //lineSeries.Name = accountViewModel.Name;
+                // xaxes.Add(axis);
+                series.Add(lineSeries);
+
+            }
+        }
+        foreach (var fsvm in tmp)
+        {
+            axis.Labels.Add(fsvm.TimePeriod.ToShortDateString());
+        }
+        xaxes.Add(axis);
+
+
+
+    }
+
+    private void AddToAccounts(AccountViewModel account, ICollection<AccountViewModel> Accounts)
+    {
+        if (account is null)
+        {
+            return;
+        }
+
+        if (account.ParentAccountId is not null && account.Children is null)
+        {
+            Accounts.Add(account);
+        }
+
+        if (account.Children != null)
+        {
+            foreach (var item in account.Children)
+            {
+                AddToAccounts(item, Accounts);
+            }
+        }
+    }
 }

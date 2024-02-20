@@ -148,7 +148,7 @@
             return;
         }
 
-        if (account.ParentAccountId is not null)
+        if (account.ParentAccountId is not null && account.Children is null)
         {
             Accounts.Add(account);
         }
@@ -160,8 +160,6 @@
                 AddToAccounts(item);
             }
         }
-
-
     }
 
 }
