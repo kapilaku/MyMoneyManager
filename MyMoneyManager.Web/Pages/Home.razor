@@ -64,6 +64,8 @@
         {
             var content = await response.Content.ReadAsStringAsync();
             Accounts = JsonConvert.DeserializeObject<HashSet<AccountViewModel>>(content);
+
+            //todo 递归加载
         }
     }
 
@@ -93,6 +95,10 @@
             item.AccountType = parentAccount.AccountType;
             item.Children = new HashSet<AccountViewModel>();
 
+            if (parentAccount.Children == null)
+            {
+                parentAccount.Children = new HashSet<AccountViewModel>();
+            }
             parentAccount.Children.Add(item);
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
@@ -104,6 +110,11 @@
 
             if (response.IsSuccessStatusCode)
             {
+                json = JsonConvert.SerializeObject(parentAccount);
+                stringContent = new StringContent(json, Encoding.UTF8, "application/json");
+
+                response = await httpClient.PutAsync($"https://localhost:7014/api/account/{parentAccount.Id}", stringContent);
+
                 StateHasChanged();
             }
             else
