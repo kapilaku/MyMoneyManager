@@ -9,8 +9,16 @@
 @using SkiaSharp
 <h3>IncomeStatement</h3>
 
-<CartesianChart Series="series" XAxes="xaxes">
-</CartesianChart>
+<MudStack Row="true">
+    <CartesianChart Series="series" XAxes="xaxes">
+    </CartesianChart>
+
+    <MudSelect T="Shared.TimePeriod" ValueChanged="@ChangeTimePeriod">
+        <MudSelectItem Value="Shared.TimePeriod.Day"></MudSelectItem>
+        <MudSelectItem Value="Shared.TimePeriod.Month"></MudSelectItem>
+        <MudSelectItem Value="Shared.TimePeriod.Year"></MudSelectItem>
+    </MudSelect>
+</MudStack>
 
 @code {
 
@@ -21,23 +29,15 @@
     private ICollection<AccountViewModel> IncomeAccounts { get; set; } = new List<AccountViewModel>();
     // private ICollection<AccountViewModel> ExpenseAccounts { get; set; } = new List<AccountViewModel>();
     private List<Decimal> assets = new List<Decimal>();
-    protected override async Task OnInitializedAsync()
+    private async Task ChangeTimePeriod(Shared.TimePeriod timePeriod)
     {
-        var token = await localStorage.GetItemAsStringAsync("accessToken");
-        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-        var response = await httpClient.GetAsync("https://localhost:7014/api/account");
-
-        if (response.IsSuccessStatusCode)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            Accounts = JsonConvert.DeserializeObject<HashSet<AccountViewModel>>(content);
-
-            AddToAccounts(Accounts.Where(a => a.AccountType == Shared.AccountType.ASSET).First(), IncomeAccounts);
-            AddToAccounts(Accounts.Where(a => a.AccountType == Shared.AccountType.LIABILITY).First(), IncomeAccounts);
-            AddToAccounts(Accounts.Where(a => a.AccountType == Shared.AccountType.EQUITY).First(), IncomeAccounts);
-        }
-
+        await LoadByTimePeriod(timePeriod);
+    }
+    private async Task LoadByTimePeriod(Shared.TimePeriod timePeriod)
+    {
+        series.Clear();
+        xaxes.Clear();
+        assets.Clear();
         Axis axis = new Axis();
         axis.Labels = new List<string>();
         ICollection<FinancialStatusViewModel> tmp = new List<FinancialStatusViewModel>();
@@ -46,7 +46,20 @@
 
         foreach (var item in IncomeAccounts)
         {
-            response = await httpClient.GetAsync($"https://localhost:7014/api/financial/dailyzeros/{item.Id}");
+            HttpResponseMessage response;
+
+            if (timePeriod == Shared.TimePeriod.Day)
+            {
+                response = await httpClient.GetAsync($"https://localhost:7014/api/financial/dailyzeros/{item.Id}");
+            }
+            else if (timePeriod == Shared.TimePeriod.Month)
+            {
+                response = await httpClient.GetAsync($"https://localhost:7014/api/financial/monthlyzeros/{item.Id}");
+            }
+            else
+            {
+                response = await httpClient.GetAsync($"https://localhost:7014/api/financial/yearlyzeros/{item.Id}");
+            }
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
@@ -99,12 +112,40 @@
 
         foreach (var fsvm in tmp)
         {
-            axis.Labels.Add(fsvm.TimePeriod.ToShortDateString());
+            if (timePeriod == Shared.TimePeriod.Day)
+            {
+                axis.Labels.Add(fsvm.TimePeriod.ToString("dd/MM/yy"));
+            }
+            else if (timePeriod == Shared.TimePeriod.Month)
+            {
+                axis.Labels.Add(fsvm.TimePeriod.ToString("MM yyyy"));
+            }
+            else
+            {
+                axis.Labels.Add(fsvm.TimePeriod.ToString("yyyy"));
+            }
         }
         xaxes.Add(axis);
 
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        var token = await localStorage.GetItemAsStringAsync("accessToken");
+        httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
+        var response = await httpClient.GetAsync("https://localhost:7014/api/account");
 
+        if (response.IsSuccessStatusCode)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            Accounts = JsonConvert.DeserializeObject<HashSet<AccountViewModel>>(content);
+
+            AddToAccounts(Accounts.Where(a => a.AccountType == Shared.AccountType.ASSET).First(), IncomeAccounts);
+            AddToAccounts(Accounts.Where(a => a.AccountType == Shared.AccountType.LIABILITY).First(), IncomeAccounts);
+            AddToAccounts(Accounts.Where(a => a.AccountType == Shared.AccountType.EQUITY).First(), IncomeAccounts);
+        }
+
+        LoadByTimePeriod(Shared.TimePeriod.Day);
     }
 
     private void AddToAccounts(AccountViewModel account, ICollection<AccountViewModel> Accounts)
@@ -118,7 +159,7 @@
             return;
         }
 
-        if (account.ParentAccountId is not null && account.Children is null)
+        if (account.ParentAccountId is not null)
         {
             Accounts.Add(account);
         }

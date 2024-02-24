@@ -19,6 +19,9 @@ namespace MyMoneyManager.API.Services
 
         private HashSet<AccountViewModel> GetChildrenAccountViewModels(Account account)
         {
+
+            account = _appDbContext.Account.Where(x => x.Id == account.Id).Include(x => x.ChildAccounts).FirstOrDefault();
+
             if (account.ChildAccounts == null)
             {
                 return null;
